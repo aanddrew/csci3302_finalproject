@@ -3,13 +3,96 @@ WorldInfo {
   coordinateSystem "NUE"
 }
 Viewpoint {
-  orientation -0.7 0.7 0.2 0.75
-  position 1.2 1.6 2.3
-
+  orientation 0.07162778146805708 0.9645440204059287 0.25401632550120007 3.422199605479514
+  position -7.628389174705603 13.081906923785686 -22.0825113149615
 }
 TexturedBackground {
 }
 TexturedBackgroundLight {
 }
 RectangleArena {
+  floorSize 20 20
+  floorTileSize 1 1
+  floorAppearance MattePaint {
+    baseColor 0.7 1 1
+  }
+}
+TiagoSteel {
+  translation -2.05 0.095 0
+  controller "seeker"
+  cameraSlot [
+    Display {
+      width 360
+      height 360
+    }
+    Compass {
+    }
+    GPS {
+    }
+  ]
+}
+Panel {
+  appearance MattePaint {
+    baseColor 0.7 1 1
+  }
+  borderAppearance MattePaint {
+    baseColor 0.7 1 1
+  }
+}
+Panel {
+  translation 2.4 0 -4.8
+  name "panel(2)"
+  size 2.4 1.5 0.05
+  appearance MattePaint {
+    baseColor 0.7 1 1
+  }
+  borderAppearance MattePaint {
+    baseColor 0.7 1 1
+  }
+}
+Panel {
+  translation 0 0 -4.8
+  name "panel(1)"
+  size 2.4 1.5 0.05
+  appearance MattePaint {
+    baseColor 0.7 1 1
+  }
+  borderAppearance MattePaint {
+    baseColor 0.7 1 1
+  }
+}
+Panel {
+  translation 1.2 0 0
+  name "panel(3)"
+  size 3.6 1.5 0.05
+  appearance MattePaint {
+    baseColor 0.7 1 1
+  }
+  borderAppearance MattePaint {
+    baseColor 0.7 1 1
+  }
+}
+Panel {
+  translation 4.8 0 0
+  rotation 0 1 0 1.57
+  name "panel(4)"
+  size 3.6 1.5 0.05
+  appearance MattePaint {
+    baseColor 0.7 1 1
+  }
+  borderAppearance MattePaint {
+    baseColor 0.7 1 1
+  }
+}
+Panel {
+  translation 4.8 0 -1.2
+  rotation 0 1 0 1.57
+  name "panel(5)"
+  size 3.6 1.5 0.05
+  appearance MattePaint {
+    baseColor 0.7 1 1
+  }
+  borderAppearance MattePaint {
+    baseColor 0.7 1 1
+  }
 }
