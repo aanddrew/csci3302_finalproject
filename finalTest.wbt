@@ -17,6 +17,10 @@ RectangleArena {
     baseColor 0.7 1 1
   }
 }
+TiagoSteel {
+  translation -2.05 0.095 0
+  controller "seeker"
+}
 Panel {
   appearance MattePaint {
     baseColor 0.7 1 1
