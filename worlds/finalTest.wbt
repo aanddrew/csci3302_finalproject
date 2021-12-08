@@ -4,7 +4,11 @@ WorldInfo {
 }
 Viewpoint {
   orientation 0.07162778146805708 0.9645440204059287 0.25401632550120007 3.422199605479514
+<<<<<<< HEAD
   position -7.214176030014089 12.186565149802709 -20.589248464617096
+=======
+  position -7.628389174705603 13.081906923785686 -22.0825113149615
+>>>>>>> e645e3bf45549b5ad0941c98f5e61b2e261c6c1a
 }
 TexturedBackground {
 }
@@ -20,6 +24,19 @@ RectangleArena {
 TiagoSteel {
   translation -2.05 0.095 0
   controller "seeker"
+<<<<<<< HEAD
+=======
+  cameraSlot [
+    Display {
+      width 360
+      height 360
+    }
+    Compass {
+    }
+    GPS {
+    }
+  ]
+>>>>>>> e645e3bf45549b5ad0941c98f5e61b2e261c6c1a
 }
 Panel {
   appearance MattePaint {
