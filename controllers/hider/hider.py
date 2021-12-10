@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from scipy.signal import convolve2d # Uncomment if you want to use something else for finding the configuration space
 import RRT_class
 
-MAX_SPEED = .25*7.0  # [rad/s]
+MAX_SPEED = .5*7.0  # [rad/s]
 MAX_SPEED_MS = 0.633 # [m/s]
 AXLE_LENGTH = 0.50 # m
 WHEEL_RADIUS = 0.1 # m
@@ -22,6 +22,10 @@ LIDAR_ANGLE_RANGE = math.radians(240)
 DISPLAY_LENGTH = 360 #number of pixels on a side of display
 WORLD_XLIMS = (-10,10)
 WORLD_YLIMS = (-10,10)
+
+RRT_ITERATIONS = 400;
+DELTA_Q = 70;
+TOWARDS_GOAL = .5;
 
 mode = "explore"
 ##### vvv [Begin] Do Not Modify vvv #####
@@ -181,7 +185,7 @@ map = None
 goal_point = world_to_pixel((7,-2))
 #initialize RRT class
 map = np.zeros([360,360])
-RRT = RRT_class.RRT(config_radius=10,k=200,q=50,map_size=360,min_goal_dist=2)
+RRT = RRT_class.RRT(config_radius=10,k=RRT_ITERATIONS,q=DELTA_Q,map_size=360,min_goal_dist=2, towards_goal_prob=TOWARDS_GOAL)
 
 #do one iteration of run_RRT
 robot.step(timestep)
@@ -198,7 +202,10 @@ display.drawOval(int(pixel_waypoints[1][0]), int(pixel_waypoints[1][1]), 10, 10)
 print('here')
 state = 1;
 goalPoint = world_to_pixel((7,-2)) # make this random?
+loop_count = -1;
 while robot.step(timestep) != -1:
+    loop_count+=1
+
     pose_y = gps.getValues()[2]
     pose_x = gps.getValues()[0]
 
@@ -265,6 +272,13 @@ while robot.step(timestep) != -1:
 
     display.drawPixel(x,y)
 
+    # update config space
+    if loop_count%100==0:
+        RRT.update_config_space(map)
+        displayMap(RRT.get_config_space())
+        # print('loop_count',loop_count)
+
+
 ###################### RRT ######################################
 
     # print('nodes',nodes)
@@ -279,10 +293,14 @@ while robot.step(timestep) != -1:
         vL = 0
         vR = 0
     # Is the RRT needs to be rebuilt
-    elif (translation_error < 0.5) or RRT.check_collisions_along_path(nodes):
+    elif (translation_error < 0.5):
+        state+=1
+
+    if RRT.check_collisions_along_path(nodes):
         # state+=1;
         # if state >= len(waypoints):
         #     state = len(waypoints) - 1
+        state = 1
         pixel_coords = world_to_pixel((pose_x,pose_y))
         print('pose',(pose_x,pose_y))
         # print('pixel_coords',pixel_coords)
@@ -296,7 +314,8 @@ while robot.step(timestep) != -1:
         print('goal wayppint', waypoints[state])
         clear_display();
         draw_tree(nodes)
-        displayMap(map)
+
+        displayMap(RRT.get_config_space())
         #raw current node that the robot is travelling to
         display.drawOval(int(pixel_waypoints[1][0]), int(pixel_waypoints[1][1]), 10, 10)
         continue

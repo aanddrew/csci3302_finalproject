@@ -107,6 +107,9 @@ class RRT:
 
         return node_list
 
+    def get_config_space(self):
+        return self.config_space
+
     def get_nearest_node(self, nodes, point):
 
 
