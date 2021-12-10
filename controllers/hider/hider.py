@@ -231,8 +231,9 @@ while robot.step(timestep) != -1:
             # You will eventually REPLACE the following 2 lines with a more robust version of the map
             # with a grayscale drawing containing more levels than just 0 and 1.
             display.setColor(0xFFFFFF)
-            disp_x = 360-int(wy*30)
-            disp_y = int(wx*30)
+            temp = world_to_pixel((wx,wy))
+            disp_x = temp[0]
+            disp_y = temp[1]
             if (disp_x > 359):
                 disp_x = 359
 
@@ -258,7 +259,7 @@ while robot.step(timestep) != -1:
 
     display.setColor(int(0xFF0000))
     temp = world_to_pixel((pose_x,pose_y))
-    print('temp',temp)
+
     x = temp[0]
     y = temp[1]
 
@@ -271,13 +272,14 @@ while robot.step(timestep) != -1:
     # draw_tree(nodes)
 
     # print('world waypoints',waypoints)
-    print('poses', pose_x, pose_y, waypoints[state])
+    # print('poses', pose_x, pose_y, waypoints[state])
     translation_error = euclid([pose_x, pose_y], waypoints[state])
     if state == len(waypoints) - 1 and translation_error < 0.5:
         mode = 'done'
         vL = 0
         vR = 0
-    elif (translation_error < 0.5):
+    # Is the RRT needs to be rebuilt
+    elif (translation_error < 0.5) or RRT.check_collisions_along_path(nodes):
         # state+=1;
         # if state >= len(waypoints):
         #     state = len(waypoints) - 1
@@ -286,10 +288,15 @@ while robot.step(timestep) != -1:
         # print('pixel_coords',pixel_coords)
         nodes = RRT.run_RRT(pixel_coords,goalPoint,map)
         pixel_waypoints = RRT.get_waypoints(nodes)
+
         waypoints = pixel_to_world(pixel_waypoints)
-        print('goal wayppint',waypoints[state])
+        print('#############################################################################')
+        print('pixel ways', pixel_waypoints)
+        print('State = ',state)
+        print('goal wayppint', waypoints[state])
         clear_display();
         draw_tree(nodes)
+        displayMap(map)
         #raw current node that the robot is travelling to
         display.drawOval(int(pixel_waypoints[1][0]), int(pixel_waypoints[1][1]), 10, 10)
         continue
@@ -299,7 +306,8 @@ while robot.step(timestep) != -1:
     rho = 0
     alpha = -(math.atan2(waypoints[state][1]-pose_y,waypoints[state][0]-pose_x) + pose_theta)
 
-
+    if alpha > 3.14: alpha -= 6.28
+    if alpha < -3.14: alpha += 6.28
 
 
 ######################CONTROLLER################################
@@ -312,13 +320,23 @@ while robot.step(timestep) != -1:
 
     prop_left = translation_coef*translation_error - (rotation_coeff*alpha*AXLE_LENGTH/2)
     prop_right = translation_coef*translation_error + (rotation_coeff*alpha*AXLE_LENGTH/2)
-
+    print('props',prop_left,prop_right)
     if (prop_left>prop_right):
         vL = MAX_SPEED;
         vR = prop_right/prop_left*MAX_SPEED;
     else:
         vL = prop_left/prop_right*MAX_SPEED;
         vR = MAX_SPEED;
+
+    if alpha>.5:
+        vL = -MAX_SPEED/2
+        vR = MAX_SPEED/2;
+    elif alpha<-.5:
+        vL = MAX_SPEED/2
+        vR = -MAX_SPEED/2;
+    # else:
+    #     vL = MAX_SPEED/2
+    #     vR = MAX_SPEED/2;
 
     if mode == 'done':
         vL = 0
@@ -340,6 +358,9 @@ while robot.step(timestep) != -1:
     pose_x         += pose_x_dot*DELTA_TIME
     pose_y         += pose_y_dot*DELTA_TIME
     pose_theta     += pose_theta_dot*DELTA_TIME
+
+    if pose_theta > 3.14: pose_theta -= 6.28
+    if pose_theta < -3.14: pose_theta += 6.28
 
     print('translation_error',translation_error, ' bearing error', alpha,' vels ', vL,vR)
     #set wheel vels

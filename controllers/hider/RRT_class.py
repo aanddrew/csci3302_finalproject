@@ -123,9 +123,10 @@ class RRT:
         while cur_node.parent is not None:
             path.append(cur_node.parent)
             cur_node = cur_node.parent
+        #extract the actual points
         waypoints = [node.point for node in path]
 
-        return waypoints[::-1]
+        return waypoints[::-1] ##this revereses the order of the list
 
     def steer(self,from_point, to_point, samples = 10):
         # get vector that points from 'from_point' to 'to_point'
@@ -176,6 +177,24 @@ class RRT:
             return False
         # print('valid point',x,y)
         return True
+
+    def check_for_collsiions_2points(self,point1, point2, sampling_points = 10):
+        #return true if there is a collision iminent
+        point1 = np.array(point1)
+        point2 = np.array(point2)
+        pointingVec = point2-point1
+        path = np.empty([sampling_points, len(pointingVec)], np.float64)
+        for i in range(len(pointingVec)):
+            path[:,i] = np.linspace(point1[i],point2[i],sampling_points)
+
+        for point in path:
+            x = int(point[0])
+            y = int(point[1])
+
+            if self.config_space[x][y] > 0.9:
+                return True
+
+        return False
 
     def path_is_valid(self, points, config_space):
         '''
@@ -249,10 +268,16 @@ class RRT:
     #             [to_remove.append(child) for child in removed_node.children]
     #     self.root = new_parent
 
-    # def check_collisions_along_path(path):
-    #     '''
-    #     Runs all segments of a path through check collsions
-    #
-    #     :param path: list of Nodes representing the path
-    #     '''
-    #     for node, i in enumerate(path):
+    def check_collisions_along_path(self,nodes,sampling_points=10):
+        '''
+        Runs all segments of a path through check collsions
+
+        :param path: list of Nodes representing the path
+        '''
+        cur_node = nodes[len(nodes)-1]
+        while cur_node.parent is not None:
+            if self.check_for_collsiions_2points(cur_node.point,cur_node.parent.point,sampling_points=sampling_points):
+                return True
+            cur_node = cur_node.parent
+
+        return False
