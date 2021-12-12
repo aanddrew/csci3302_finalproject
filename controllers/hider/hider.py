@@ -23,8 +23,10 @@ DISPLAY_LENGTH = 360 #number of pixels on a side of display
 WORLD_XLIMS = (-10,10)
 WORLD_YLIMS = (-10,10)
 
+HIDING_TIME = 3*60;
+
 RRT_ITERATIONS = 1000;
-DELTA_Q = 20;
+DELTA_Q = 40;
 TOWARDS_GOAL = .25;
 CONFIG_RADIUS = 5
 
@@ -321,7 +323,7 @@ while robot.step(timestep) != -1:
 
 
 ###################### RRT ######################################
-    if mode == 'explorer':
+    if mode == 'explorer' and robot.getTime()<HIDING_TIME:
         # print('nodes',nodes)
         # print('waypoints',RRT.get_waypoints(nodes))
         # draw_tree(nodes)
@@ -379,6 +381,9 @@ while robot.step(timestep) != -1:
             # else:
             #     alpha = 1.56
             # alpha = -(math.atan2(temp_goal[1]-pose_y,temp_goal[0]-pose_x) + pose_theta)
+    elif robot.getTime()>HIDING_TIME:
+        mode = 'done'
+
 
     if alpha > 3.14: alpha -= 6.28
     if alpha < -3.14: alpha += 6.28
@@ -422,6 +427,7 @@ while robot.step(timestep) != -1:
             mode = 'explorer'
 
     if mode == 'done':
+        print('hider is done exploring and is now hiding.')
         vL = 0
         vR = 0
 
