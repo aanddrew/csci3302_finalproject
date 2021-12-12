@@ -226,7 +226,7 @@ lidar_offsets = lidar_offsets[83:len(lidar_offsets)-83] # Only keep lidar readin
 map = None
 #initialize RRT class
 map = np.zeros([360,360])
-RRT = RRT_class.RRT(config_radius=CONFIG_RADIUS,k=RRT_ITERATIONS,q=DELTA_Q,map_size=360,min_goal_dist=2, towards_goal_prob=TOWARDS_GOAL)
+RRT = RRT_class.RRT(config_radius=CONFIG_RADIUS,k=RRT_ITERATIONS,q=DELTA_Q,map_size=360,min_goal_dist=4, towards_goal_prob=TOWARDS_GOAL)
 goal_point = get_new_goal_point()
 
 #do one iteration of run_RRT
@@ -245,6 +245,7 @@ display.drawOval(int(pixel_waypoints[1][0]), int(pixel_waypoints[1][1]), 10, 10)
 state = 1;
 goalPoint = world_to_pixel((7,-2)) # make this random?
 loop_count = -1;
+flag = False
 while robot.step(timestep) != -1:
 
     loop_count+=1
@@ -331,7 +332,7 @@ while robot.step(timestep) != -1:
         # print('world waypoints',waypoints)
         # print('poses', pose_x, pose_y, waypoints[state])
         translation_error = euclid([pose_x, pose_y], waypoints[state])
-        if state == len(waypoints) - 1 and translation_error < 0.25:
+        if state == len(waypoints) - 1 and translation_error < 0.15:
             state = 1
             print('New goal point line 334',goal_point)
             goal_point = get_new_goal_point()
@@ -346,7 +347,7 @@ while robot.step(timestep) != -1:
             display.drawOval(int(pixel_waypoints[1][0]), int(pixel_waypoints[1][1]), 10, 10)
 
         # Is the RRT needs to be rebuilt
-        elif (translation_error < 0.25):
+        elif (translation_error < 0.15):
             state+=1
 
         if RRT.check_collisions_along_path(nodes) or not RRT.point_is_valid(goal_point,RRT.get_config_space()):
@@ -369,13 +370,13 @@ while robot.step(timestep) != -1:
 
 
         # print('pose',pose_x,pose_y,pose_theta*180/3.14,waypoints[state])
-        rho = 0
-        alpha = -(math.atan2(waypoints[state][1]-pose_y,waypoints[state][0]-pose_x) + pose_theta)
 
         if not RRT.point_is_valid(world_to_pixel((pose_x,pose_y)),RRT.get_config_space()):
             print('point is not valid line 370')
             mode = 'backup'
-            backup_start_time = robot.getTime()
+            if not flag:
+                backup_start_time = robot.getTime()
+                flag = True
             # if lidar_sensor_readings[0]>1:
             #     alpha = -1.56
             # else:
@@ -385,6 +386,8 @@ while robot.step(timestep) != -1:
         mode = 'done'
 
 
+    rho = 0
+    alpha = -(math.atan2(waypoints[state][1]-pose_y,waypoints[state][0]-pose_x) + pose_theta)
     if alpha > 3.14: alpha -= 6.28
     if alpha < -3.14: alpha += 6.28
 
@@ -417,20 +420,24 @@ while robot.step(timestep) != -1:
     #     vL = MAX_SPEED/2
     #     vR = MAX_SPEED/2;
     if mode == 'backup':
+        print('mode = backup', )
         vL = MAX_SPEED/2
         vR = MAX_SPEED/2;
-        if backup_start_time-robot.getTime()>0.5 and backup_start_time-robot.getTime()<1:
+        if robot.getTime()-backup_start_time>0.5 and robot.getTime()-backup_start_time<2:
+            print('turning')
             vL = MAX_SPEED/2
             vR = -MAX_SPEED/2;
+        elif robot.getTime()-backup_start_time>2:
             backup_start_time = robot.getTime()
         if RRT.point_is_valid(world_to_pixel((pose_x,pose_y)),RRT.get_config_space()):
             mode = 'explorer'
+            flag = False
 
     if mode == 'done':
         print('hider is done exploring and is now hiding.')
         vL = 0
         vR = 0
-
+    print(mode)
     # print('velocities',vL,vR,'props',prop_left,prop_right)
 
     #odometry
