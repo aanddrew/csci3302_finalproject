@@ -24,7 +24,7 @@ WORLD_XLIMS = (-10,10)
 WORLD_YLIMS = (-10,10)
 
 RRT_ITERATIONS = 400;
-DELTA_Q = 70;
+DELTA_Q = 40;
 TOWARDS_GOAL = .5;
 
 mode = "explore"
@@ -118,6 +118,13 @@ def draw_rect(x, y, radius, color):
 def euclid(x, y):
     return np.sqrt((x[0] - y[0])**2 + (x[1] - y[1]) **2)
 
+def get_new_goal_point():
+
+    # x = random.random()*(WORLD_XLIMS[1]-WORLD_XLIMS[0])+WORLD_XLIMS[0]
+    # y = random.random()*(WORLD_YLIMS[1]-WORLD_YLIMS[0])+WORLD_YLIMS[0]
+    point = RRT.get_random_valid_vertex([(0,DISPLAY_LENGTH),(0,DISPLAY_LENGTH)],RRT.get_config_space())
+    return point
+
 
 ####################END FUNCTIONS##################
 
@@ -182,10 +189,10 @@ lidar_offsets = np.linspace(-LIDAR_ANGLE_RANGE/2., +LIDAR_ANGLE_RANGE/2., LIDAR_
 lidar_offsets = lidar_offsets[83:len(lidar_offsets)-83] # Only keep lidar readings not blocked by robot chassis
 
 map = None
-goal_point = world_to_pixel((7,-2))
 #initialize RRT class
 map = np.zeros([360,360])
 RRT = RRT_class.RRT(config_radius=10,k=RRT_ITERATIONS,q=DELTA_Q,map_size=360,min_goal_dist=2, towards_goal_prob=TOWARDS_GOAL)
+goal_point = get_new_goal_point()
 
 #do one iteration of run_RRT
 robot.step(timestep)
@@ -296,7 +303,9 @@ while robot.step(timestep) != -1:
     elif (translation_error < 0.5):
         state+=1
 
-    if RRT.check_collisions_along_path(nodes):
+    if RRT.check_collisions_along_path(nodes) or not RRT.point_is_valid(goal_point,RRT.get_config_space()):
+        if not RRT.point_is_valid(goal_point,RRT.get_config_space()):
+            goal_point = get_new_goal_point();
         # state+=1;
         # if state >= len(waypoints):
         #     state = len(waypoints) - 1

@@ -174,9 +174,11 @@ class RRT:
         x = int(point[0])
         y = int(point[1])
         if config_space[x][y] > 0.9:
+            print('point not valid (config test)', x, y)
             return False
         if x<self.state_bounds[0][0] or x>self.state_bounds[0][1] or y<self.state_bounds[1][0] or y>self.state_bounds[1][1]:
             # print('invalid point',x,y)
+            print('point not valid (bounds)', x, y)
             return False
         # print('valid point',x,y)
         return True
