@@ -23,11 +23,12 @@ DISPLAY_LENGTH = 360 #number of pixels on a side of display
 WORLD_XLIMS = (-10,10)
 WORLD_YLIMS = (-10,10)
 
-RRT_ITERATIONS = 400;
-DELTA_Q = 40;
-TOWARDS_GOAL = .5;
+RRT_ITERATIONS = 1000;
+DELTA_Q = 20;
+TOWARDS_GOAL = .25;
+CONFIG_RADIUS = 5
 
-mode = "explore"
+mode = "explorer"
 ##### vvv [Begin] Do Not Modify vvv #####
 
 ################FUNCTIONS########################
@@ -125,6 +126,38 @@ def get_new_goal_point():
     point = RRT.get_random_valid_vertex([(0,DISPLAY_LENGTH),(0,DISPLAY_LENGTH)],RRT.get_config_space())
     return point
 
+def get_closest_valid_point(config_space):
+    locs = world_to_pixel((pose_x,pose_y))
+    col = locs[0]
+    row = locs[1]
+
+    cols = config_space.shape[1]
+    rows = config_space.shape[0]
+
+    radius = 0
+    while True:
+        radius+=1
+
+        left = col-radius
+        right = col+radius
+
+        upper = row-radius
+        lower = row+radius
+
+        if left<0:
+            left = 0
+        if right>cols-1:
+            right = cols-1
+        if lower > rows-1:
+            lower = rows-1
+        if upper < 0:
+            upper = 0
+
+        if config_space[col][upper]<0.1: return pixel_to_world([col,upper])
+        if config_space[col][lower]<0.1: return pixel_to_world([col,lower])
+        if config_space[left][row]<0.1: return pixel_to_world([left,row])
+        if config_space[right][row]<0.1: return pixel_to_world([right,row])
+
 
 ####################END FUNCTIONS##################
 
@@ -191,7 +224,7 @@ lidar_offsets = lidar_offsets[83:len(lidar_offsets)-83] # Only keep lidar readin
 map = None
 #initialize RRT class
 map = np.zeros([360,360])
-RRT = RRT_class.RRT(config_radius=10,k=RRT_ITERATIONS,q=DELTA_Q,map_size=360,min_goal_dist=2, towards_goal_prob=TOWARDS_GOAL)
+RRT = RRT_class.RRT(config_radius=CONFIG_RADIUS,k=RRT_ITERATIONS,q=DELTA_Q,map_size=360,min_goal_dist=2, towards_goal_prob=TOWARDS_GOAL)
 goal_point = get_new_goal_point()
 
 #do one iteration of run_RRT
@@ -206,11 +239,12 @@ draw_tree(nodes)
 # cuurent waypoint
 display.drawOval(int(pixel_waypoints[1][0]), int(pixel_waypoints[1][1]), 10, 10)
 
-print('here')
+
 state = 1;
 goalPoint = world_to_pixel((7,-2)) # make this random?
 loop_count = -1;
 while robot.step(timestep) != -1:
+
     loop_count+=1
 
     pose_y = gps.getValues()[2]
@@ -287,52 +321,64 @@ while robot.step(timestep) != -1:
 
 
 ###################### RRT ######################################
+    if mode == 'explorer':
+        # print('nodes',nodes)
+        # print('waypoints',RRT.get_waypoints(nodes))
+        # draw_tree(nodes)
 
-    # print('nodes',nodes)
-    # print('waypoints',RRT.get_waypoints(nodes))
-    # draw_tree(nodes)
+        # print('world waypoints',waypoints)
+        # print('poses', pose_x, pose_y, waypoints[state])
+        translation_error = euclid([pose_x, pose_y], waypoints[state])
+        if state == len(waypoints) - 1 and translation_error < 0.25:
+            state = 1
+            print('New goal point line 334',goal_point)
+            goal_point = get_new_goal_point()
+            pixel_coords = world_to_pixel((pose_x,pose_y))
+            nodes = RRT.run_RRT(pixel_coords,goalPoint,map)
+            pixel_waypoints = RRT.get_waypoints(nodes)
+            waypoints = pixel_to_world(pixel_waypoints)
+            clear_display();
+            draw_tree(nodes)
+            displayMap(RRT.get_config_space())
+            #raw current node that the robot is travelling to
+            display.drawOval(int(pixel_waypoints[1][0]), int(pixel_waypoints[1][1]), 10, 10)
 
-    # print('world waypoints',waypoints)
-    # print('poses', pose_x, pose_y, waypoints[state])
-    translation_error = euclid([pose_x, pose_y], waypoints[state])
-    if state == len(waypoints) - 1 and translation_error < 0.5:
-        mode = 'done'
-        vL = 0
-        vR = 0
-    # Is the RRT needs to be rebuilt
-    elif (translation_error < 0.5):
-        state+=1
+        # Is the RRT needs to be rebuilt
+        elif (translation_error < 0.25):
+            state+=1
 
-    if RRT.check_collisions_along_path(nodes) or not RRT.point_is_valid(goal_point,RRT.get_config_space()):
-        if not RRT.point_is_valid(goal_point,RRT.get_config_space()):
-            goal_point = get_new_goal_point();
-        # state+=1;
-        # if state >= len(waypoints):
-        #     state = len(waypoints) - 1
-        state = 1
-        pixel_coords = world_to_pixel((pose_x,pose_y))
-        print('pose',(pose_x,pose_y))
-        # print('pixel_coords',pixel_coords)
-        nodes = RRT.run_RRT(pixel_coords,goalPoint,map)
-        pixel_waypoints = RRT.get_waypoints(nodes)
+        if RRT.check_collisions_along_path(nodes) or not RRT.point_is_valid(goal_point,RRT.get_config_space()):
 
-        waypoints = pixel_to_world(pixel_waypoints)
-        print('#############################################################################')
-        print('pixel ways', pixel_waypoints)
-        print('State = ',state)
-        print('goal wayppint', waypoints[state])
-        clear_display();
-        draw_tree(nodes)
+            if not RRT.point_is_valid(goal_point,RRT.get_config_space()):
+                print('New goal point line 352',goal_point)
+                goal_point = get_new_goal_point();
 
-        displayMap(RRT.get_config_space())
-        #raw current node that the robot is travelling to
-        display.drawOval(int(pixel_waypoints[1][0]), int(pixel_waypoints[1][1]), 10, 10)
-        continue
+            state = 1
+            pixel_coords = world_to_pixel((pose_x,pose_y))
+            nodes = RRT.run_RRT(pixel_coords,goalPoint,map)
+            pixel_waypoints = RRT.get_waypoints(nodes)
+            waypoints = pixel_to_world(pixel_waypoints)
+            clear_display();
+            draw_tree(nodes)
+            displayMap(RRT.get_config_space())
+            #raw current node that the robot is travelling to
+            display.drawOval(int(pixel_waypoints[1][0]), int(pixel_waypoints[1][1]), 10, 10)
+            continue
 
 
-    # print('pose',pose_x,pose_y,pose_theta*180/3.14,waypoints[state])
-    rho = 0
-    alpha = -(math.atan2(waypoints[state][1]-pose_y,waypoints[state][0]-pose_x) + pose_theta)
+        # print('pose',pose_x,pose_y,pose_theta*180/3.14,waypoints[state])
+        rho = 0
+        alpha = -(math.atan2(waypoints[state][1]-pose_y,waypoints[state][0]-pose_x) + pose_theta)
+
+        if not RRT.point_is_valid(world_to_pixel((pose_x,pose_y)),RRT.get_config_space()):
+            print('point is not valid line 370')
+            mode = 'backup'
+            backup_start_time = robot.getTime()
+            # if lidar_sensor_readings[0]>1:
+            #     alpha = -1.56
+            # else:
+            #     alpha = 1.56
+            # alpha = -(math.atan2(temp_goal[1]-pose_y,temp_goal[0]-pose_x) + pose_theta)
 
     if alpha > 3.14: alpha -= 6.28
     if alpha < -3.14: alpha += 6.28
@@ -348,7 +394,7 @@ while robot.step(timestep) != -1:
 
     prop_left = translation_coef*translation_error - (rotation_coeff*alpha*AXLE_LENGTH/2)
     prop_right = translation_coef*translation_error + (rotation_coeff*alpha*AXLE_LENGTH/2)
-    print('props',prop_left,prop_right)
+    # print('props',prop_left,prop_right)
     if (prop_left>prop_right):
         vL = MAX_SPEED;
         vR = prop_right/prop_left*MAX_SPEED;
@@ -356,19 +402,29 @@ while robot.step(timestep) != -1:
         vL = prop_left/prop_right*MAX_SPEED;
         vR = MAX_SPEED;
 
-    if alpha>.5:
+    if alpha>.25:
         vL = -MAX_SPEED/2
         vR = MAX_SPEED/2;
-    elif alpha<-.5:
+    elif alpha<-.25:
         vL = MAX_SPEED/2
         vR = -MAX_SPEED/2;
     # else:
     #     vL = MAX_SPEED/2
     #     vR = MAX_SPEED/2;
+    if mode == 'backup':
+        vL = MAX_SPEED/2
+        vR = MAX_SPEED/2;
+        if backup_start_time-robot.getTime()>0.5 and backup_start_time-robot.getTime()<1:
+            vL = MAX_SPEED/2
+            vR = -MAX_SPEED/2;
+            backup_start_time = robot.getTime()
+        if RRT.point_is_valid(world_to_pixel((pose_x,pose_y)),RRT.get_config_space()):
+            mode = 'explorer'
 
     if mode == 'done':
         vL = 0
         vR = 0
+
     # print('velocities',vL,vR,'props',prop_left,prop_right)
 
     #odometry
@@ -390,7 +446,7 @@ while robot.step(timestep) != -1:
     if pose_theta > 3.14: pose_theta -= 6.28
     if pose_theta < -3.14: pose_theta += 6.28
 
-    print('translation_error',translation_error, ' bearing error', alpha,' vels ', vL,vR)
+    # print('translation_error',translation_error, ' bearing error', alpha,' vels ', vL,vR)
     #set wheel vels
     robot_parts[MOTOR_LEFT].setVelocity(vL)
     robot_parts[MOTOR_RIGHT].setVelocity(vR)

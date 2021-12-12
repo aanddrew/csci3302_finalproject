@@ -87,8 +87,9 @@ class RRT:
 
             # print('steering from ', nearest_node.point, ' to ', new_point)
             path = self.steer(nearest_node.point, new_point)
-
-            if not self.path_is_valid(path, self.config_space):
+            if self.path_is_valid(path[3:len(path)-1], self.config_space) and len(node_list)<2:
+                pass
+            elif not self.path_is_valid(path, self.config_space):
                 continue
 
             # create new node
@@ -104,6 +105,8 @@ class RRT:
 
             if np.linalg.norm(np.array(new_node.point)-np.array(goal_point))<self.min_goal_dist:
                 break
+        if i == self.k-1:
+            print('---------------------------------------- RRT did not find goal point----------------------------')
 
         return node_list
 
@@ -156,14 +159,14 @@ class RRT:
         # for i,limit in enumerate(bounds):
         #     vertex[i] = [random.random()*(limit[1]-limit[0])+limit[0]]\
         point = np.zeros(len(bounds))
-        for j in range(500):
+        for j in range(1000):
             for i,limits in enumerate(bounds):
                 point[i] = int(random.random()*(limits[1]-limits[0])+limits[0])
             # print('get_random_valid_vertex point',point)
             if self.point_is_valid(point, config_space): break
 
-        if j==499:
-            raise Exception("get_random_valid_vertex did not find a valid point after 500 iterations")
+        if j==1000:
+            raise Exception(f"get_random_valid_vertex did not find a valid point after {j} iterations")
 
         return point
 
@@ -174,11 +177,11 @@ class RRT:
         x = int(point[0])
         y = int(point[1])
         if config_space[x][y] > 0.9:
-            print('point not valid (config test)', x, y)
+            # print('point not valid (config test)', x, y)
             return False
         if x<self.state_bounds[0][0] or x>self.state_bounds[0][1] or y<self.state_bounds[1][0] or y>self.state_bounds[1][1]:
             # print('invalid point',x,y)
-            print('point not valid (bounds)', x, y)
+            # print('point not valid (bounds)', x, y)
             return False
         # print('valid point',x,y)
         return True
